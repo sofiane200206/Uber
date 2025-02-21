@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/fighter.dart';
 import '../widgets/fighter_card.dart';
 import 'map_screen.dart'; // Import de la page de carte
-
+import 'authenfication_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const HomeContent(), // Contenu principal
     const MapScreen(),   // Page de la carte
-    const Center(child: Text("Profil")), // Page Profil (à modifier selon tes besoins)
+    const AuthPage(), // Page Profil (à modifier selon tes besoins)
   ];
 
   @override
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Carte'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Authenfication'),
         ],
       ),
     );

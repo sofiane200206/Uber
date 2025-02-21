@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart' as geo; // Import pour gérer la géolocalisation
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapScreen extends StatefulWidget {
@@ -13,87 +13,94 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   MapboxMap? mapboxMap;
   PointAnnotationManager? pointAnnotationManager;
+  geo.Position? userPosition;
 
-  // Fonction pour déterminer la position de l'utilisateur
-  Future<geo.Position> _determinePosition() async {
-    bool serviceEnabled;
-    geo.LocationPermission permission;
+  @override
+  void initState() {
+    super.initState();
+    _getUserLocation(); // Récupère la position au lancement
+  }
 
-    // Test si les services de localisation sont activés
-    serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+  /// Demande les permissions et obtient la position de l'utilisateur
+  Future<void> _getUserLocation() async {
+    bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return Future.error('Les services de localisation sont désactivés.');
+      debugPrint('Les services de localisation sont désactivés.');
+      return;
     }
 
-    // Vérifie les permissions
-    permission = await geo.Geolocator.checkPermission();
+    geo.LocationPermission permission = await geo.Geolocator.checkPermission();
     if (permission == geo.LocationPermission.denied) {
       permission = await geo.Geolocator.requestPermission();
       if (permission == geo.LocationPermission.denied) {
-        return Future.error('Les permissions de localisation sont refusées');
+        debugPrint('Permissions de localisation refusées.');
+        return;
       }
     }
 
     if (permission == geo.LocationPermission.deniedForever) {
-      return Future.error('Les permissions de localisation sont définitivement refusées');
+      debugPrint('Permissions de localisation définitivement refusées.');
+      return;
     }
 
-    // Retourne la position actuelle de l'utilisateur
-    return await geo.Geolocator.getCurrentPosition();
+    // Récupère la position actuelle
+    geo.Position position = await geo.Geolocator.getCurrentPosition();
+    setState(() {
+      userPosition = position;
+    });
+
+    // Met à jour la caméra si la carte est déjà chargée
+    if (mapboxMap != null) {
+  mapboxMap!.setCamera(CameraOptions(
+    center: Point(coordinates: Position(position.longitude, position.latitude)),
+    zoom: 14,
+  ));
+}
+
   }
 
   /// Fonction appelée lorsque la carte est prête
-  void _onMapCreated(MapboxMap mapboxMap) async {
-    this.mapboxMap = mapboxMap;
-    mapboxMap.location.updateSettings(LocationComponentSettings(enabled: true,pulsingEnabled: true),);
-    pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+  void _onMapCreated(MapboxMap map) async {
+    mapboxMap = map;
 
-    // Charger l'image de l'annotation depuis les assets
+    // Active la localisation sur la carte
+    mapboxMap!.location.updateSettings(LocationComponentSettings(
+      enabled: true,
+      pulsingEnabled: true,
+    ));
+
+    // Crée un gestionnaire d'annotations pour les marqueurs
+    pointAnnotationManager = await mapboxMap!.annotations.createPointAnnotationManager();
+
+    // Charge l'image du marqueur depuis les assets
     final ByteData bytes = await rootBundle.load('assets/test.png');
     final Uint8List imageData = bytes.buffer.asUint8List();
 
-    // Créer un point avec une icône personnalisée
-    PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
-      geometry: Point(coordinates: Position(4.8357, 45.7640)), // Coordonnées de Lyon par défaut
-      image: imageData,
-      iconSize: 0.1,
-    );
+    // Ajoute un marqueur à la position de l'utilisateur
+    if (userPosition != null) {
+      PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
+        geometry: Point(coordinates: Position(userPosition!.longitude, userPosition!.latitude)),
+        image: imageData,
+        iconSize: 0.1,
+      );
 
-    // Ajouter l'annotation sur la carte
-    pointAnnotationManager?.create(pointAnnotationOptions);
+      pointAnnotationManager?.create(pointAnnotationOptions);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Carte")),
-      body: FutureBuilder<geo.Position>(
-        future: _determinePosition(), // Attente de la position
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Erreur: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            geo.Position position = snapshot.data!;
-
-            // Paramètres de la caméra avec la position de l'utilisateur
-            CameraOptions cameraOptions = CameraOptions(
-              center: Point(coordinates: Position(position.longitude, position.latitude)),
-              zoom: 12,
-              bearing: 0,
-              pitch: 0,
-            );
-
-            return MapWidget(
-              cameraOptions: cameraOptions,
+      body: userPosition == null
+          ? const Center(child: CircularProgressIndicator())
+          : MapWidget(
+              cameraOptions: CameraOptions(
+                center: Point(coordinates: Position(userPosition!.longitude, userPosition!.latitude)),
+                zoom: 14,
+              ),
               onMapCreated: _onMapCreated,
-            );
-          } else {
-            return Center(child: Text('Aucune donnée de position disponible.'));
-          }
-        },
-      ),
+            ),
     );
   }
 }
