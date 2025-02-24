@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/fighter.dart';
 import '../widgets/fighter_card.dart';
-import 'map_screen.dart'; // Import de la page de carte
+import 'map_screen.dart';
 import 'authenfication_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -13,13 +14,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Fighter> filteredFighters = Fighter.getFighters();
   final TextEditingController searchController = TextEditingController();
-  int _currentIndex = 0; // Gère l'index de navigation
-
-  final List<Widget> _screens = [
-    const HomeContent(), // Contenu principal
-    const MapScreen(),   // Page de la carte
-    const AuthPage(), // Page Profil (à modifier selon tes besoins)
-  ];
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -38,22 +33,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onItemTapped(int index) {
     setState(() {
-      _currentIndex = index; // Met à jour la page affichée
+      _currentIndex = index;
     });
   }
+
+  List<Widget> get _screens => [
+        HomeContent(
+          fighters: filteredFighters,
+          searchController: searchController,
+        ),
+        const MapScreen(),
+        const AuthPage(),
+      ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Liste des bagarreurs")),
-      body: _screens[_currentIndex], // Affiche la page sélectionnée
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Carte'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Authenfication'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Authentification'),
         ],
       ),
     );
@@ -66,9 +70,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Séparation du contenu principal
 class HomeContent extends StatelessWidget {
-  const HomeContent({super.key});
+  final List<Fighter> fighters;
+  final TextEditingController searchController;
+
+  const HomeContent({
+    super.key,
+    required this.fighters,
+    required this.searchController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +87,7 @@ class HomeContent extends StatelessWidget {
       child: Column(
         children: [
           TextField(
+            controller: searchController,
             decoration: InputDecoration(
               hintText: "Rechercher un combattant...",
               prefixIcon: const Icon(Icons.search),
@@ -86,9 +97,9 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 10),
           Expanded(
             child: ListView.builder(
-              itemCount: Fighter.getFighters().length,
+              itemCount: fighters.length,
               itemBuilder: (context, index) {
-                return FighterCard(fighter: Fighter.getFighters()[index]);
+                return FighterCard(fighter: fighters[index]);
               },
             ),
           ),
