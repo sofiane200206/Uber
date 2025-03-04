@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'dart:async';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,11 +14,41 @@ class _MapScreenState extends State<MapScreen> {
   MapboxMap? mapboxMap;
   PointAnnotationManager? pointAnnotationManager;
   geo.Position? userPosition;
+  StreamSubscription<geo.Position>? userPositionStream;
+
+  final geo.LocationSettings locationSetting = geo.LocationSettings(
+    accuracy: geo.LocationAccuracy.high,
+    distanceFilter: 10, // Met à jour la position tous les 10 mètres
+  );
 
   @override
   void initState() {
     super.initState();
-    _getUserLocation(); // Récupère la position au lancement
+    _getUserLocation(); // Récupère la position initiale
+
+    // Écoute les changements de position en temps réel
+    userPositionStream = geo.Geolocator.getPositionStream(locationSettings: locationSetting).listen((geo.Position? position) {
+      if (position != null) {
+        debugPrint("Nouvelle position reçue: ${position.latitude}, ${position.longitude}");
+        setState(() {
+          userPosition = position;
+        });
+        if (mapboxMap != null) {
+        mapboxMap!.setCamera(CameraOptions(
+          center: Point(coordinates: Position(position.longitude, position.latitude)),
+          zoom: 14,  // Zoom de la caméra pour mieux suivre l'utilisateur
+        ));
+        } else {
+          debugPrint("Position reçue est null");
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    userPositionStream?.cancel();
+    super.dispose();
   }
 
   /// Demande les permissions et obtient la position de l'utilisateur
@@ -51,12 +81,11 @@ class _MapScreenState extends State<MapScreen> {
 
     // Met à jour la caméra si la carte est déjà chargée
     if (mapboxMap != null) {
-  mapboxMap!.setCamera(CameraOptions(
-    center: Point(coordinates: Position(position.longitude, position.latitude)),
-    zoom: 14,
-  ));
-}
-
+      mapboxMap!.setCamera(CameraOptions(
+        center: Point(coordinates: Position(position.longitude, position.latitude)),
+        zoom: 14,
+      ));
+    }
   }
 
   /// Fonction appelée lorsque la carte est prête
@@ -68,24 +97,6 @@ class _MapScreenState extends State<MapScreen> {
       enabled: true,
       pulsingEnabled: true,
     ));
-
-    // Crée un gestionnaire d'annotations pour les marqueurs
-    pointAnnotationManager = await mapboxMap!.annotations.createPointAnnotationManager();
-
-    // Charge l'image du marqueur depuis les assets
-    final ByteData bytes = await rootBundle.load('assets/test.png');
-    final Uint8List imageData = bytes.buffer.asUint8List();
-
-    // Ajoute un marqueur à la position de l'utilisateur
-    if (userPosition != null) {
-      PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
-        geometry: Point(coordinates: Position(userPosition!.longitude, userPosition!.latitude)),
-        image: imageData,
-        iconSize: 0.1,
-      );
-
-      pointAnnotationManager?.create(pointAnnotationOptions);
-    }
   }
 
   @override
