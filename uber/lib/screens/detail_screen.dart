@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' as gl;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/fighter.dart';
+import 'package:flutter/services.dart';
 
 class DetailScreen extends StatefulWidget {
   final Fighter fighter;
@@ -15,75 +17,107 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   MapboxMap? mapboxMap;
   PointAnnotationManager? pointAnnotationManager;
-  double userDistance = -1; // Distance utilisateur initiale
+  double userDistance = -1;
 
   @override
   void initState() {
     super.initState();
-    _getUserDistance(); // Calculer la distance dès l'initialisation
+    _getUserDistance();
   }
 
-  /// Fonction appelée quand la carte est prête
   void _onMapCreated(MapboxMap map) async {
     mapboxMap = map;
-
-    // Crée l'annotation manager pour gérer les annotations
     final annotationManager = await map.annotations.createPointAnnotationManager();
     setState(() {
       pointAnnotationManager = annotationManager;
     });
-
     _addFighterMarker();
   }
 
-  /// Ajoute un marqueur pour le combattant
   void _addFighterMarker() async {
-    if (pointAnnotationManager == null || mapboxMap == null) return;
+  if (pointAnnotationManager == null || mapboxMap == null) return;
 
-    // Crée un marqueur sur la carte à l'emplacement du combattant
-    await pointAnnotationManager!.create(PointAnnotationOptions(
+  try {
+    // Charger l’image depuis les assets
+    final ByteData bytes = await rootBundle.load('assets/test.png');
+    final Uint8List imageData = bytes.buffer.asUint8List();
+
+    // Créer l'annotation avec l'image
+    PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
       geometry: Point(coordinates: Position(widget.fighter.longitude, widget.fighter.latitude)),
-      iconSize: 1.5,
-      textField: widget.fighter.name, // Affiche le nom du combattant sur le marqueur
-      textColor: Colors.black.value,
-      iconImage: "assets/test.png", // Image du marqueur (assure-toi qu'elle soit dans les assets)
-    ));
+      image: imageData,
+      textField: widget.fighter.name, // Image chargée en mémoire
+      iconSize: 0.125,
+      textOffset: [0, 2], // Ajuste la taille si nécessaire
+    );
 
-    // Centre la caméra sur le combattant
+    // Ajouter l'annotation
+    await pointAnnotationManager!.create(pointAnnotationOptions);
+
+    // Centrer la carte sur l'annotation
     mapboxMap!.setCamera(CameraOptions(
       center: Point(coordinates: Position(widget.fighter.longitude, widget.fighter.latitude)),
       zoom: 12,
     ));
+  } catch (e) {
+    print("Erreur lors du chargement de l'image : $e");
   }
+}
 
-  // Fonction pour calculer la distance entre l'utilisateur et le combattant
+
   Future<void> _getUserDistance() async {
     double distance = await calculateDistance(widget.fighter);
-    setState(() {
-      userDistance = distance;
-    });
+    if (mounted) {
+      setState(() {
+        userDistance = distance;
+      });
+    }
   }
 
-  // Fonction pour calculer la distance en km
   Future<double> calculateDistance(Fighter fighter) async {
     try {
-      // Obtenir la position de l'utilisateur
       gl.Position position = await gl.Geolocator.getCurrentPosition(
         desiredAccuracy: gl.LocationAccuracy.high,
       );
-
-      // Calculer la distance entre l'utilisateur et le combattant
       double distanceMeters = gl.Geolocator.distanceBetween(
-        position.latitude, // Position de l'utilisateur
-        position.longitude, // Position de l'utilisateur
-        fighter.latitude, // Latitude du combattant
-        fighter.longitude, // Longitude du combattant
+        position.latitude,
+        position.longitude,
+        fighter.latitude,
+        fighter.longitude,
       );
-
-      return distanceMeters / 1000; // Convertir en km
+      return distanceMeters / 1000;
     } catch (e) {
       print("Erreur distance: $e");
       return -1;
+    }
+  }
+
+  Future<void> _deleteFighter() async {
+    final supabase = Supabase.instance.client;
+    try {
+      final response = await supabase
+          .from('Fighters')
+          .delete()
+          .eq('id', widget.fighter.id)
+          .select()
+          .single(); // Remplacer execute() par select() et single()
+
+      // Vérification si l'élément a bien été supprimé
+      if (response == null) {
+        throw Exception("Aucun combattant trouvé avec cet ID.");
+      }
+
+      // Afficher un message de succès
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Combattant supprimé avec succès !")),
+      );
+      Navigator.pop(context); // Retour à l'écran précédent
+
+    } catch (e) {
+      // Affichage de l'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de la suppression : $e")),
+      );
     }
   }
 
@@ -112,11 +146,38 @@ class _DetailScreenState extends State<DetailScreen> {
                 Text("Taille: ${widget.fighter.taille} cm", style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 20),
                 Text("Description: ${widget.fighter.description}", style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    bool confirm = await showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text("Confirmer la suppression"),
+                          content: const Text("Es-tu sûr de vouloir supprimer ce combattant ?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text("Annuler"),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text("Supprimer"),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    if (confirm == true) {
+                      _deleteFighter();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text("Supprimer", style: TextStyle(color: Colors.white)),
+                ),
               ],
             ),
           ),
-
-          // 📌 Carte Mapbox avec le marqueur du combattant
           Expanded(
             child: MapWidget(
               cameraOptions: CameraOptions(

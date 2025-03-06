@@ -4,6 +4,7 @@ import '../models/fighter.dart';
 import '../widgets/fighter_card.dart';
 import 'map_screen.dart';
 import 'authenfication_screen.dart';
+import 'addfighter_screen.dart'; // Ajoute l'import de la page AddFighterScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,6 +69,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Liste des bagarreurs")),
       body: _screens[_currentIndex],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navigation vers la page d'ajout d'un combattant
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddFighterScreen()),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onItemTapped,

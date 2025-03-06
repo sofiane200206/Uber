@@ -13,7 +13,20 @@ class FighterCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       child: ListTile(
-        leading: Image.network(fighter.image, width: 50, height: 50, fit: BoxFit.cover),
+        leading: Image.network(
+          fighter.image,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset(
+      'assets/perso.png', // Image locale par défaut
+      width: 50,
+      height: 50,
+      fit: BoxFit.cover,
+    );
+          },
+        ),
         title: Text(fighter.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text("🏆 ${fighter.wins} | ❌ ${fighter.losses}"),
         trailing: const Icon(Icons.arrow_forward_ios),

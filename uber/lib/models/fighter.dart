@@ -36,7 +36,7 @@ class Fighter {
       wins: json['wins']?.toString() ?? '0',
       losses: json['losses']?.toString() ?? '0',
       distance: json['distance'] ?? 'Non précisé',
-      image: json['image_url'] ?? 'https://example.com/default.jpg',
+      image: json['image_url'] ?? 'https://png.pngtree.com/element_our/20200702/ourmid/pngtree-cartoon-character-icon-free-button-image_2291930.jpg',
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       poids: (json['poids'] as num?)?.toDouble() ?? 0.0,
