@@ -10,21 +10,23 @@ class FighterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
       child: ListTile(
-        leading: CircleAvatar(
-          radius: 28,
-          backgroundImage: NetworkImage(fighter.image),
-        ),
+        leading: Image.network(fighter.image, width: 50, height: 50, fit: BoxFit.cover),
         title: Text(fighter.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(fighter.role),
-        trailing: Text(fighter.distance, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("🏆 ${fighter.wins} | ❌ ${fighter.losses}"),
+        trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
+          // Action quand on clique sur un combattant
+          debugPrint("Combattant sélectionné : ${fighter.name}");
+
+          // Navigation vers DetailScreen avec le combattant
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => DetailScreen(fighter: fighter)),
+            MaterialPageRoute(
+              builder: (context) => DetailScreen(fighter: fighter),
+            ),
           );
         },
       ),

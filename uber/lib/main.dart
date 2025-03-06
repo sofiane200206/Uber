@@ -5,7 +5,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future <void> main() async {
-  runApp(const MyApp());
+  
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
   MapboxOptions.setAccessToken(dotenv.get('SECRET'));
@@ -13,6 +13,7 @@ Future <void> main() async {
     url: 'https://ptrpkvjypvzjvynhsqtc.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cnBrdmp5cHZ6anZ5bmhzcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNDI1MDUsImV4cCI6MjA1NTYxODUwNX0.geqhQj6sUGB08zUqNSPXraFue2aXuF1XC5OcGRciG7g',
    );
+   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

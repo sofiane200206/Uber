@@ -30,16 +30,18 @@ class _MapScreenState extends State<MapScreen> {
     userPositionStream = geo.Geolocator.getPositionStream(locationSettings: locationSetting).listen((geo.Position? position) {
       if (position != null) {
         debugPrint("Nouvelle position reçue: ${position.latitude}, ${position.longitude}");
+
+        if (!mounted) return; // Empêche le setState si le widget est supprimé
+
         setState(() {
           userPosition = position;
         });
+
         if (mapboxMap != null) {
-        mapboxMap!.setCamera(CameraOptions(
-          center: Point(coordinates: Position(position.longitude, position.latitude)),
-          zoom: 14,  // Zoom de la caméra pour mieux suivre l'utilisateur
-        ));
-        } else {
-          debugPrint("Position reçue est null");
+          mapboxMap!.setCamera(CameraOptions(
+            center: Point(coordinates: Position(position.longitude, position.latitude)),
+            zoom: 14,  // Zoom de la caméra pour mieux suivre l'utilisateur
+          ));
         }
       }
     });
@@ -47,7 +49,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
-    userPositionStream?.cancel();
+    userPositionStream?.cancel(); // Annule l'écouteur lors de la suppression du widget
     super.dispose();
   }
 
@@ -75,6 +77,9 @@ class _MapScreenState extends State<MapScreen> {
 
     // Récupère la position actuelle
     geo.Position position = await geo.Geolocator.getCurrentPosition();
+
+    if (!mounted) return; // Vérifie si le widget est toujours actif avant setState
+
     setState(() {
       userPosition = position;
     });
