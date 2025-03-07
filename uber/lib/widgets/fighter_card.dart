@@ -29,7 +29,7 @@ class FighterCard extends StatelessWidget {
         ),
         title: Text(fighter.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text("🏆 ${fighter.wins} | ❌ ${fighter.losses}"),
-        trailing: const Icon(Icons.arrow_forward_ios),
+        trailing: const Text("Gratuit", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
         onTap: () {
           // Action quand on clique sur un combattant
           debugPrint("Combattant sélectionné : ${fighter.name}");
