@@ -24,6 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
     testFightersQuery(); // Vérifie si la table est bien accessible
   }
 
+  /// Vérifie si l'utilisateur est connecté
+  bool _isUserLoggedIn() {
+    final user = Supabase.instance.client.auth.currentUser;
+    return user != null;
+  }
+
   /// Teste la requête Supabase et affiche les résultats dans la console
   void testFightersQuery() async {
     final supabase = Supabase.instance.client;
@@ -46,20 +52,38 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> get _screens => [
-        StreamBuilder<List<Fighter>>(
-          stream: fightersStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text("Erreur : ${snapshot.error}"));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("Aucun combattant trouvé !"));
-            } else {
-              return HomeContent(fighters: snapshot.data!, searchController: searchController);
-            }
-          },
-        ),
+        _isUserLoggedIn()
+            ? StreamBuilder<List<Fighter>>(
+                stream: fightersStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text("Erreur : ${snapshot.error}"));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("Aucun combattant trouvé !"));
+                  } else {
+                    return HomeContent(fighters: snapshot.data!, searchController: searchController);
+                  }
+                },
+              )
+            : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Connectez-vous pour voir les combattants !"),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentIndex = 2; // Redirige vers la page d'authentification
+                        });
+                      },
+                      child: const Text("Se connecter"),
+                    ),
+                  ],
+                ),
+              ),
         const MapScreen(),
         const AuthPage(),
       ];
@@ -69,16 +93,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Uber bagarre")),
       body: _screens[_currentIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navigation vers la page d'ajout d'un combattant
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddFighterScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _isUserLoggedIn()
+          ? FloatingActionButton(
+              onPressed: () {
+                // Navigation vers la page d'ajout d'un combattant
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddFighterScreen()),
+                );
+              },
+              child: const Icon(Icons.add),
+            )
+          : null, // Cache le bouton si l'utilisateur n'est pas connecté
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
