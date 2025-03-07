@@ -87,15 +87,7 @@ class _AuthPageState extends State<AuthPage> {
     });
   }
 
-  Future<void> _reserveFighter(int fighterId) async {
-    if (_userProfile == null) return;
-    final userEmail = _userProfile!['email'];
-    await supabase.from('reservations').insert({
-      'user_email': userEmail,
-      'fighter_id': fighterId,
-      'reserved_at': DateTime.now().toIso8601String(),
-    });
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -119,10 +111,7 @@ class _AuthPageState extends State<AuthPage> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => _reserveFighter(1), // Exemple de fighter_id = 1
-                child: const Text('RÉSERVER UN COMBATTANT'),
-              ),
+              
             ] else ...[
               const Text('Not signed in', style: TextStyle(fontSize: 20)),
             ],
