@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Liste des bagarreurs")),
+      appBar: AppBar(title: const Text("Uber bagarre")),
       body: _screens[_currentIndex],
       floatingActionButton: FloatingActionButton(
         onPressed: () {

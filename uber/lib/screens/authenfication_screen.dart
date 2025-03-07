@@ -17,8 +17,6 @@ class _AuthPageState extends State<AuthPage> {
   @override
   void initState() {
     super.initState();
-
-    // Écoute les changements d'état d'authentification
     supabase.auth.onAuthStateChange.listen((data) {
       setState(() {
         if (data.session != null) {
@@ -32,6 +30,70 @@ class _AuthPageState extends State<AuthPage> {
           _userProfile = null;
         }
       });
+    });
+  }
+
+  Future<void> _signInWithGoogle() async {
+    const webClientId =
+        '701990745010-67mk6fmt0akb87p3c5jh3orbu2oodfoo.apps.googleusercontent.com';
+
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      serverClientId: webClientId,
+    );
+
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) return;
+
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    final accessToken = googleAuth.accessToken;
+
+    if (idToken == null || accessToken == null) {
+      throw 'Google sign-in failed.';
+    }
+
+    await supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+
+    final user = supabase.auth.currentUser;
+    if (user != null && user.email != null) {
+      final List<Map<String, dynamic>> response = await supabase
+          .from('users')
+          .select()
+          .eq('email', user.email!)
+          .limit(1);
+
+      if (response.isEmpty) {
+        await supabase.from('users').insert({
+          'id': user.id,
+          'email': user.email!,
+          'name': user.userMetadata?['full_name'] ?? 'No Name',
+          'avatar_url': user.userMetadata?['avatar_url'] ??
+              'https://example.com/default-avatar.png',
+        });
+      }
+    }
+
+    setState(() {
+      _userProfile = {
+        'name': googleUser.displayName ?? 'No Name',
+        'email': googleUser.email,
+        'picture': googleUser.photoUrl ??
+            'https://example.com/default-avatar.png',
+      };
+    });
+  }
+
+  Future<void> _reserveFighter(int fighterId) async {
+    if (_userProfile == null) return;
+    final userEmail = _userProfile!['email'];
+    await supabase.from('reservations').insert({
+      'user_email': userEmail,
+      'fighter_id': fighterId,
+      'reserved_at': DateTime.now().toIso8601String(),
     });
   }
 
@@ -56,45 +118,17 @@ class _AuthPageState extends State<AuthPage> {
                 'Email: ${_userProfile!['email']}',
                 style: const TextStyle(fontSize: 16),
               ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _reserveFighter(1), // Exemple de fighter_id = 1
+                child: const Text('RÉSERVER UN COMBATTANT'),
+              ),
             ] else ...[
               const Text('Not signed in', style: TextStyle(fontSize: 20)),
             ],
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                const webClientId =
-                    '701990745010-67mk6fmt0akb87p3c5jh3orbu2oodfoo.apps.googleusercontent.com';
-
-                final GoogleSignIn googleSignIn = GoogleSignIn(
-                  serverClientId: webClientId,
-                );
-
-                final googleUser = await googleSignIn.signIn();
-                if (googleUser == null) return;
-
-                final googleAuth = await googleUser.authentication;
-                final idToken = googleAuth.idToken;
-                final accessToken = googleAuth.accessToken;
-
-                if (idToken == null || accessToken == null) {
-                  throw 'Google sign-in failed.';
-                }
-
-                await supabase.auth.signInWithIdToken(
-                  provider: OAuthProvider.google,
-                  idToken: idToken,
-                  accessToken: accessToken,
-                );
-
-                setState(() {
-                  _userProfile = {
-                    'name': googleUser.displayName ?? 'No Name',
-                    'email': googleUser.email,
-                    'picture': googleUser.photoUrl ??
-                        'https://example.com/default-avatar.png',
-                  };
-                });
-              },
+              onPressed: _signInWithGoogle,
               child: const Text('SIGN IN WITH GOOGLE'),
             ),
             const SizedBox(height: 10),
