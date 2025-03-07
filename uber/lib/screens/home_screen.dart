@@ -53,20 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> get _screens => [
         _isUserLoggedIn()
-            ? StreamBuilder<List<Fighter>>(
-                stream: fightersStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text("Erreur : ${snapshot.error}"));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("Aucun combattant trouvé !"));
-                  } else {
-                    return HomeContent(fighters: snapshot.data!, searchController: searchController);
-                  }
-                },
-              )
+            ? HomeContent(fightersStream: fightersStream, searchController: searchController)
             : Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -93,18 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Uber bagarre")),
       body: _screens[_currentIndex],
-      floatingActionButton: _isUserLoggedIn()
-          ? FloatingActionButton(
-              onPressed: () {
-                // Navigation vers la page d'ajout d'un combattant
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AddFighterScreen()),
-                );
-              },
-              child: const Icon(Icons.add),
-            )
-          : null, // Cache le bouton si l'utilisateur n'est pas connecté
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
@@ -119,40 +94,69 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class HomeContent extends StatelessWidget {
-  final List<Fighter> fighters;
+  final Stream<List<Fighter>> fightersStream;
   final TextEditingController searchController;
 
   const HomeContent({
     super.key,
-    required this.fighters,
+    required this.fightersStream,
     required this.searchController,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        children: [
-          TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: "Rechercher un combattant...",
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+    return StreamBuilder<List<Fighter>>(
+      stream: fightersStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text("Erreur : ${snapshot.error}"));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text("Aucun combattant trouvé !"));
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: "Rechercher un combattant...",
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    return FighterCard(fighter: snapshot.data![index]);
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddFighterScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white, 
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                child: const Text("Ajouter un combattant"),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView.builder(
-              itemCount: fighters.length,
-              itemBuilder: (context, index) {
-                return FighterCard(fighter: fighters[index]);
-              },
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

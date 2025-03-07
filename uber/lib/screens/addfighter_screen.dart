@@ -88,7 +88,7 @@ class _AddFighterScreenState extends State<AddFighterScreen> {
               const SizedBox(height: 10),
               TextField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description')),
               const SizedBox(height: 10),
-              TextField(controller: _imageUrlController, decoration: const InputDecoration(labelText: 'URL de l\'image')),
+              TextField(controller: _imageUrlController, decoration: const InputDecoration(labelText: 'URL de l\'image (peut être vide)')),
               const SizedBox(height: 10),
               TextField(controller: _poidsController, decoration: const InputDecoration(labelText: 'Poids (kg)'), keyboardType: TextInputType.number),
               const SizedBox(height: 10),
